@@ -17,3 +17,7 @@ tfischer 23/11/16
 
   or whatever your device is called. It can be checked after plugging
   in using 'dmesg'.
+
+gestom 10/07/17
+
+ We needed to install *libudev-dev* and *libv4l-dev*
