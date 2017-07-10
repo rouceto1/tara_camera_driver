@@ -1,0 +1,15 @@
+29/11/16 tfischer
+
+  - The buffer in ImuDriver seems a bit unstable. No mutex. Is it right?
+    Can we use a dynamic structure instead? I'm still not quite sure
+    how/why it works.
+    It seems that xunit_lib_tara relies on this being a fixed array
+    of data, because the ids are updated internally for some
+    obscure reason.
+
+  - Tara.h and Tara.cpp are only needed to load the camera device info.
+    This should be a parameter of the node, and we should isolate the
+    device id retrieval code if necessary.
+
+  - variance values in tara_imu_driver.cpp are fantasy.
+    We should get them from the datasheets of the LSM6DS0 chip.

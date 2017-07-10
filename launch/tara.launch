@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find tara_camera_driver)/launch/camera.launch" />
+  <include file="$(find tara_camera_driver)/launch/imu.launch" />
+</launch>

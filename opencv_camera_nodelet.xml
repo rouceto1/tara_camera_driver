@@ -1,0 +1,7 @@
+<library path="lib/libtara_camera_nodelet">
+  <class name="tara_camera_driver/driver" type="tara_camera_driver::CameraNodelet" base_class_type="nodelet::Nodelet">
+    <description> 
+      OpenCV based camera driver nodelet.
+    </description>
+  </class>
+</library>
