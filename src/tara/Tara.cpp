@@ -23,6 +23,7 @@
 				system and gives the resolutions supported.
 **********************************************************************/
 #include "Tara.h"
+#include <glib.h>
 
 #define DEFAULT_FRAME_WIDTH			640
 #define DEFAULT_FRAME_HEIGHT		480
