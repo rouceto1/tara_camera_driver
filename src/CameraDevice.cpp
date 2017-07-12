@@ -7,6 +7,8 @@
 #include <sys/mman.h>
 #include <linux/videodev2.h>
 
+#include "tara/Tara.h"
+
 #define forn(i,n) for(size_t i=0;i<(n);i++)
 
 using namespace tara;
@@ -28,6 +30,12 @@ StereoCameraDriver::StereoCameraDriver(const std::string& device)
     throw std::runtime_error("Opening video device");
 
   printCapabilities();
+int DeviceID;
+cv::Size ImageSize;
+  Tara::CameraEnumeration _CameraEnumeration(&DeviceID, &ImageSize);
+        InitExtensionUnit(_CameraEnumeration.DeviceInfo);
+SetManualExposureValue_Stereo(1000);
+//ROS_INFO("exposure init");
 
   init_mmap();
 }

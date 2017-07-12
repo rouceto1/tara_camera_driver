@@ -39,11 +39,11 @@ link_directories( ${catkin_LINK_DIRS} )
 find_package(Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
-add_executable(tara_camera_node src/tara_camera_node.cpp src/tara_camera_driver.cpp src/CameraDevice.cpp)
-target_link_libraries(tara_camera_node ${Boost_LIBRARIES} ${catkin_LIBRARIES})
+add_executable(tara_camera_node src/tara_camera_node.cpp src/tara_camera_driver.cpp src/CameraDevice.cpp src/tara/xunit_lib_tara.cpp src/tara/Tara.cpp)
+target_link_libraries(tara_camera_node ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${GLIB_LIBRARIES} udev v4l2)
 
-add_library(tara_camera_nodelet src/tara_camera_nodelet.cpp src/tara_camera_driver.cpp src/CameraDevice.cpp)
-target_link_libraries(tara_camera_nodelet ${Boost_LIBRARIES} ${catkin_LIBRARIES})
+add_library(tara_camera_nodelet src/tara_camera_nodelet.cpp src/tara_camera_driver.cpp src/CameraDevice.cpp src/tara/xunit_lib_tara.cpp src/tara/Tara.cpp)
+target_link_libraries(tara_camera_nodelet ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${GLIB_LIBRARIES} udev v4l2)
 
 add_executable(tara_imu_node src/tara_imu_node.cpp src/tara_imu_driver.cpp src/ImuDevice.cpp src/tara/Tara.cpp src/tara/xunit_lib_tara.cpp)
 target_link_libraries(tara_imu_node ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${GLIB_LIBRARIES} udev v4l2)
