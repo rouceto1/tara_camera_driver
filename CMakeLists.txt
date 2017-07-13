@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   nodelet
   sensor_msgs
+  std_msgs
 )
 
 catkin_package(
@@ -25,6 +26,7 @@ catkin_package(
     cv_bridge
     nodelet
     sensor_msgs
+  std_msgs
   LIBRARIES tara_camera_nodelet
 )
 

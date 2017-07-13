@@ -30,19 +30,39 @@ StereoCameraDriver::StereoCameraDriver(const std::string& device)
     throw std::runtime_error("Opening video device");
 
   printCapabilities();
-int DeviceID;
-cv::Size ImageSize;
+
+  int DeviceID;
+  cv::Size ImageSize;
   Tara::CameraEnumeration _CameraEnumeration(&DeviceID, &ImageSize);
-        InitExtensionUnit(_CameraEnumeration.DeviceInfo);
-SetManualExposureValue_Stereo(1000);
-//ROS_INFO("exposure init");
+  InitExtensionUnit(_CameraEnumeration.DeviceInfo);
+  SetManualExposureValue_Stereo(1000);
 
   init_mmap();
 }
 
 StereoCameraDriver::~StereoCameraDriver()
 {
+  DeinitExtensionUnit();
   close( fd_ );
+}
+
+int StereoCameraDriver::getExposure(){
+  int exposureVal = -1;
+// this method is not working - no valid data
+    if(!GetManualExposureValue_Stereo(&exposureVal)) //Get the manual exposure
+	{
+  		printf("get exposure failed\n");
+	}
+   return exposureVal;
+}
+
+bool StereoCameraDriver::setExposure(int ExposureVal){
+    if(!SetManualExposureValue_Stereo(ExposureVal)) //Set the manual exposure
+	{
+		printf("set exposure failed\n");
+		return FALSE;
+	}
+	return TRUE;
 }
 
 void StereoCameraDriver::grabNextFrame(cv::Mat& img_left, cv::Mat& img_right)
