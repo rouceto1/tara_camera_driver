@@ -16,6 +16,10 @@ class StereoCameraDriver
     ~StereoCameraDriver();
 
     void grabNextFrame(cv::Mat& img_left, cv::Mat& img_right);
+    
+    int getExposure();
+
+    bool setExposure(int ExposureVal);
 
     void printCapabilities();
 

@@ -42,6 +42,8 @@
 
 #include "CameraDevice.h"
 
+#include "std_msgs/Int32.h"
+
 namespace tara_camera_driver
 {
 
@@ -55,6 +57,8 @@ class CameraDriver
      * @brief Run the data aquisition polling loop. Blocking!
      */
     void run();
+    
+    void exposureCallback(const std_msgs::Int32::ConstPtr& input);
 
   private:
 
