@@ -44,6 +44,9 @@
 
 #include "std_msgs/Int32.h"
 
+#include <dynamic_reconfigure/server.h>
+#include <tara_camera_driver/taraCameraConfig.h>
+
 namespace tara_camera_driver
 {
 
@@ -60,6 +63,10 @@ class CameraDriver
     
     void exposureCallback(const std_msgs::Int32::ConstPtr& input);
 
+    void configCallback(tara_camera_driver::taraCameraConfig &config, uint32_t level);
+
+    void timerCallback(const ros::TimerEvent &event);
+
   private:
 
     ros::NodeHandle nh_, nhp_;
@@ -73,6 +80,11 @@ class CameraDriver
 
     size_t next_seq_;
     std::string frame_id_;
+
+    ros::Publisher exposure_pub;
+    ros::Timer timer_;
+    dynamic_reconfigure::Server<tara_camera_driver::taraCameraConfig> dyn_srv_;
+    int exposure_value;
 };
 
 };
