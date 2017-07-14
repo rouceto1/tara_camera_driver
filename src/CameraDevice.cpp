@@ -35,7 +35,6 @@ StereoCameraDriver::StereoCameraDriver(const std::string& device)
   cv::Size ImageSize;
   Tara::CameraEnumeration _CameraEnumeration(&DeviceID, &ImageSize);
   InitExtensionUnit(_CameraEnumeration.DeviceInfo);
-  SetManualExposureValue_Stereo(1000);
 
   init_mmap();
 }
