@@ -54,6 +54,10 @@ add_executable(tara_camera_node src/tara_camera_node.cpp src/tara_camera_driver.
 target_link_libraries(tara_camera_node ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${GLIB_LIBRARIES} udev v4l2)
 add_dependencies(tara_camera_node ${PROJECT_NAME}_gencfg)
 
+add_executable(tara_camera_tester src/tara_camera_tester.cpp src/CameraDevice.cpp src/tara/xunit_lib_tara.cpp src/tara/Tara.cpp)
+target_link_libraries(tara_camera_tester ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${GLIB_LIBRARIES} udev v4l2)
+add_dependencies(tara_camera_tester ${PROJECT_NAME}_gencfg)
+
 add_library(tara_camera_nodelet src/tara_camera_nodelet.cpp src/tara_camera_driver.cpp src/CameraDevice.cpp src/tara/xunit_lib_tara.cpp src/tara/Tara.cpp)
 target_link_libraries(tara_camera_nodelet ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${GLIB_LIBRARIES} udev v4l2)
 
