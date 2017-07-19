@@ -49,6 +49,7 @@ CameraDriver::CameraDriver(const std::string& device, ros::NodeHandle nh, ros::N
   , cinfo_manager_right_( ros::NodeHandle(nhp, "right") )
   , next_seq_( 0 )
   , exposure_value(8000)
+  , brightness_value(8000)
 {
   dynamic_reconfigure::Server<tara_camera_driver::taraCameraConfig>::CallbackType cb;
   cb = boost::bind(&CameraDriver::configCallback, this, _1, _2);
@@ -79,6 +80,7 @@ CameraDriver::CameraDriver(const std::string& device, ros::NodeHandle nh, ros::N
 
   ros::NodeHandle pnh("~");
   pnh.param("exposure", exposure_value, exposure_value);
+  pnh.param("brightness", brightness_value, brightness_value);
   pnh.param("rate", rate, 1);
 
   timer_ = nh.createTimer(ros::Duration(1 / rate), &CameraDriver::timerCallback, this);
@@ -94,8 +96,12 @@ void CameraDriver::timerCallback(const ros::TimerEvent &event)
 void CameraDriver::configCallback(tara_camera_driver::taraCameraConfig &config, uint32_t level)
 {
   exposure_value = config.exposure;
+  brightness_value = config.brightness;
+
   tara_cam_.setExposure(exposure_value);
-  ROS_INFO("reconfigure: [%i]", exposure_value);
+  tara_cam_.setBrightness(brightness_value);
+
+  ROS_INFO("reconfigure: exp[%i], bri[%i]", exposure_value, brightness_value);
 }
 
 void CameraDriver::exposureCallback(const std_msgs::Int32::ConstPtr& input)

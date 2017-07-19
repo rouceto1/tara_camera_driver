@@ -85,6 +85,8 @@ class CameraDriver
     ros::Timer timer_;
     dynamic_reconfigure::Server<tara_camera_driver::taraCameraConfig> dyn_srv_;
     int exposure_value;
+    int brightness_value;
+
 };
 
 };
