@@ -64,6 +64,59 @@ bool StereoCameraDriver::setExposure(int ExposureVal){
 	return TRUE;
 }
 
+bool StereoCameraDriver::setBrightness(int BrightnessVal){
+    if(!set_control(V4L2_CID_BRIGHTNESS, BrightnessVal)) //Set the manual brightness
+    {
+        printf("set brightness failed\n");
+        return FALSE;
+    }
+    return TRUE;
+}
+
+// taken from e-con ros support
+int StereoCameraDriver::set_control(uint32_t id, int val)
+{
+  v4l2_control c;
+  c.id = id;
+  // get ctrl name
+  struct v4l2_queryctrl queryctrl;
+  memset (&queryctrl, 0, sizeof (queryctrl));
+  queryctrl.id = id;
+  if (0 == ioctl (fd_, VIDIOC_QUERYCTRL, &queryctrl))
+  {
+    if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
+    {
+      printf ("Control '%s' is disabled.\n", queryctrl.name);
+      return false;
+    }
+  }
+  else
+  {
+    printf("Control #%d does not exist.\n", id);
+    return false;
+  }
+  if ( val < queryctrl.minimum || val > queryctrl.maximum )
+  {
+    printf ("Value of cntrol #%s is out of range, Select value between %d and %d\n", queryctrl.name, queryctrl.minimum, queryctrl.maximum );
+    return false;
+  }
+
+  if (ioctl(fd_, VIDIOC_G_CTRL, &c) == 0)
+  {
+    printf("current value of %s is %d\n", queryctrl.name, c.value);
+  }
+
+//	printf("Setting control '%s' from %d to %d\n", queryctrl.name, c.value, val);
+
+  c.value = val;
+  if (xioctl(fd_, VIDIOC_S_CTRL, &c) < 0)
+  {
+    printf("unable to set control '%s'!\n", queryctrl.name);
+  }
+  return true;
+
+}
+
 void StereoCameraDriver::grabNextFrame(cv::Mat& img_left, cv::Mat& img_right)
 {
   struct v4l2_buffer buf = {0};

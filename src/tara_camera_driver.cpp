@@ -49,6 +49,7 @@ CameraDriver::CameraDriver(const std::string& device, ros::NodeHandle nh, ros::N
   , cinfo_manager_right_( ros::NodeHandle(nhp, "right") )
   , next_seq_( 0 )
   , exposure_value(8000)
+  , brightness_value(8000)
 {
   dynamic_reconfigure::Server<tara_camera_driver::taraCameraConfig>::CallbackType cb;
   cb = boost::bind(&CameraDriver::configCallback, this, _1, _2);
@@ -79,6 +80,7 @@ CameraDriver::CameraDriver(const std::string& device, ros::NodeHandle nh, ros::N
 
   ros::NodeHandle pnh("~");
   pnh.param("exposure", exposure_value, exposure_value);
+  pnh.param("brightness", brightness_value, brightness_value);
   pnh.param("rate", rate, 1);
 
   timer_ = nh.createTimer(ros::Duration(1 / rate), &CameraDriver::timerCallback, this);
@@ -94,8 +96,12 @@ void CameraDriver::timerCallback(const ros::TimerEvent &event)
 void CameraDriver::configCallback(tara_camera_driver::taraCameraConfig &config, uint32_t level)
 {
   exposure_value = config.exposure;
+  brightness_value = config.brightness;
+
   tara_cam_.setExposure(exposure_value);
-  ROS_INFO("reconfigure: [%i]", exposure_value);
+  tara_cam_.setBrightness(brightness_value);
+
+  ROS_INFO("reconfigure: exp[%i], bri[%i]", exposure_value, brightness_value);
 }
 
 void CameraDriver::exposureCallback(const std_msgs::Int32::ConstPtr& input)
@@ -113,47 +119,47 @@ void CameraDriver::exposureCallback(const std_msgs::Int32::ConstPtr& input)
 
 void CameraDriver::run()
 {
-  cv::Mat left_image(FRAME_HEIGHT, FRAME_WIDTH, CV_8UC1);
-  cv::Mat right_image(FRAME_HEIGHT, FRAME_WIDTH, CV_8UC1);
+	cv::Mat left_image(FRAME_HEIGHT, FRAME_WIDTH, CV_8UC1);
+	cv::Mat right_image(FRAME_HEIGHT, FRAME_WIDTH, CV_8UC1);
 
-  ros::NodeHandle n;
-  exposure_pub = n.advertise<std_msgs::Int32>("get_exposure", 1000);
-  ros::Subscriber exposure_sub = n.subscribe("set_exposure", 1000, &CameraDriver::exposureCallback, this);
+	ros::NodeHandle n;
+	exposure_pub = n.advertise<std_msgs::Int32>("get_exposure", 1000);
+	ros::Subscriber exposure_sub = n.subscribe("set_exposure", 1000, &CameraDriver::exposureCallback, this);
 
-  while( ros::ok() )
-  {
-    tara_cam_.grabNextFrame(left_image, right_image);
+	while( ros::ok() )
+	{
+		tara_cam_.grabNextFrame(left_image, right_image);
 
-    ros::Time timestamp = ros::Time::now();
+		ros::Time timestamp = ros::Time::now();
 
-    std_msgs::Header header;
-    header.seq = next_seq_;
-    header.stamp = timestamp;
-    header.frame_id = frame_id_;
+		std_msgs::Header header;
+		header.seq = next_seq_;
+		header.stamp = timestamp;
+		header.frame_id = frame_id_;
 
-    // Convert OpenCV image to ROS image msg.
-    cv_bridge::CvImage bridge_image_left(header, sensor_msgs::image_encodings::MONO8, left_image);
-    cv_bridge::CvImage bridge_image_right(header, sensor_msgs::image_encodings::MONO8, right_image);
+		// Convert OpenCV image to ROS image msg.
+		cv_bridge::CvImage bridge_image_left(header, sensor_msgs::image_encodings::MONO8, left_image);
+		cv_bridge::CvImage bridge_image_right(header, sensor_msgs::image_encodings::MONO8, right_image);
 
-    sensor_msgs::CameraInfo::Ptr camera_info_left(new sensor_msgs::CameraInfo(cinfo_manager_left_.getCameraInfo()));
-    sensor_msgs::CameraInfo::Ptr camera_info_right(new sensor_msgs::CameraInfo(cinfo_manager_right_.getCameraInfo()));
+		sensor_msgs::CameraInfo::Ptr camera_info_left(new sensor_msgs::CameraInfo(cinfo_manager_left_.getCameraInfo()));
+		sensor_msgs::CameraInfo::Ptr camera_info_right(new sensor_msgs::CameraInfo(cinfo_manager_right_.getCameraInfo()));
 
-    camera_info_left->header = header;
-    camera_info_right->header = header;
+		camera_info_left->header = header;
+		camera_info_right->header = header;
 
-    cam_pub_left_.publish(bridge_image_left.toImageMsg(), camera_info_left);
-    cam_pub_right_.publish(bridge_image_right.toImageMsg(), camera_info_right);
+		cam_pub_left_.publish(bridge_image_left.toImageMsg(), camera_info_left);
+		cam_pub_right_.publish(bridge_image_right.toImageMsg(), camera_info_right);
 
-    
-    /* // this code slow down camera
-    int exposure_value = tara_cam_.getExposure();
-    std_msgs::Int32 exposure_msg;
-    exposure_msg.data = (int) exposure_value;
-    exposure_pub.publish(exposure_msg);
-    printf("exposure msg\n");*/
-   
-    next_seq_++;
 
-    ros::spinOnce();
-  }
+		/* // this code slow down camera
+		   int exposure_value = tara_cam_.getExposure();
+		   std_msgs::Int32 exposure_msg;
+		   exposure_msg.data = (int) exposure_value;
+		   exposure_pub.publish(exposure_msg);
+		   printf("exposure msg\n");*/
+
+		next_seq_++;
+
+		ros::spinOnce();
+	}
 }

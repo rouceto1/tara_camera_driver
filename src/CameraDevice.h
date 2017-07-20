@@ -21,6 +21,10 @@ class StereoCameraDriver
 
     bool setExposure(int ExposureVal);
 
+    bool setBrightness(int BrightnessVal);
+
+    int set_control(uint32_t id, int val);
+
     void printCapabilities();
 
   private:
