@@ -460,7 +460,7 @@ BOOL SetManualExposureValue_Stereo(INT32 ExposureValue)
 
 	//Set the Report Number
 	g_out_packet_buf[1] = CAMERA_CONTROL_STEREO; 	/* Report Number */
-	g_out_packet_buf[2] = SET_EXPOSURE_VALUE; 		/* Report Number */
+	g_out_packet_buf[2] = SET_EXPOSURE_VALUE; 	/* Report Number */
 
 	g_out_packet_buf[3] = (UINT8)((ExposureValue >> 24) & 0xFF);
 	g_out_packet_buf[4] = (UINT8)((ExposureValue >> 16) & 0xFF);

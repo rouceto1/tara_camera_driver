@@ -42,6 +42,7 @@
 #include <sensor_msgs/image_encodings.h>
 
 using namespace tara_camera_driver;
+using namespace std;
 
 CameraDriver::CameraDriver(const std::string& device, ros::NodeHandle nh, ros::NodeHandle nhp)
   : nh_( nh ), nhp_( nhp )
@@ -87,110 +88,126 @@ void CameraDriver::exposureCallback(const std_msgs::Int32::ConstPtr& input)
 
 void CameraDriver::run()
 {
-  cv::Mat left_image(FRAME_HEIGHT, FRAME_WIDTH, CV_8UC1);
-  cv::Mat right_image(FRAME_HEIGHT, FRAME_WIDTH, CV_8UC1);
+	cv::Mat left_image(FRAME_HEIGHT, FRAME_WIDTH, CV_8UC1);
+	cv::Mat right_image(FRAME_HEIGHT, FRAME_WIDTH, CV_8UC1);
 
-  ros::NodeHandle n;
-  ros::Publisher exposure_pub = n.advertise<std_msgs::Int32>("get_exposure", 1000);
-  ros::Subscriber exposure_sub = n.subscribe("set_exposure", 1000, &CameraDriver::exposureCallback, this);
+	ros::NodeHandle n;
+	ros::Publisher exposure_pub = n.advertise<std_msgs::Int32>("get_exposure", 1000);
+	ros::Subscriber exposure_sub = n.subscribe("set_exposure", 1000, &CameraDriver::exposureCallback, this);
 
-  float sum = 0; 
-  float lastSum = 10; 
-  int exposure=10;
-
-  int exposureArray[255];
-  int minGray = 20;
-  int maxGray = 255-minGray;
-  for (int i = minGray;i<maxGray;i++) exposureArray[i] = 0;
-  int increment = 1;
-  int j = 0;
-  char filename[100];
-  /*initial walkthrough*/
-  for (int i = 0;i<1000 && (sum < maxGray || lastSum < maxGray || exposure < 255);i++)
-  {
-	  tara_cam_.setExposure(exposure);
-	  /*let the camera settle*/
-	  for (int j=0;j<5;j++) tara_cam_.grabNextFrame(left_image, right_image);
-	  /*calculate image brightness*/
-	  lastSum = sum;
-	  sum = cv::sum(left_image).val[0]/left_image.rows/left_image.cols;
-	  sprintf(filename,"image_%03i_%02i_%06i.png",(int)(round(sum)),j,exposure);
-	  cv::imwrite(filename,right_image);
-	  exposureArray[(int)(sum+0.5)] = exposure;
-	  if (lastSum < sum)  increment = (int)fmax(fmin((increment/(sum-lastSum)),exposure/10.0),1);   //adaptive step for exposure increment
-	  exposure+=increment;
-	  ROS_INFO("Exposure %i %i %f",i,exposure,sum);
-	  ros::spinOnce();
-  }
-
-  /*detect missing average grays and fill them*/
-  for (int i = minGray;i<maxGray;i++){
-	  if (exposureArray[i] ==0)
-	  {
-		  ROS_INFO("Gap detected %i ",i);
-		  int j = i;
-		  while (j<maxGray && exposureArray[j] ==0) j++;
-		  float minExposure = exposureArray[i-1];
-		  float maxExposure = exposureArray[j];
-		  ROS_INFO("Bounds %i:%.0f  %i:%.0f",i-1,minExposure,j,maxExposure);
-		  for (int k=i;k<j;k++){
-			  exposure = (k-i+1)*(maxExposure-minExposure)/(j-i+1)+minExposure;
-			  tara_cam_.setExposure(exposure);
-			  for (int j=0;j<8;j++)  tara_cam_.grabNextFrame(left_image, right_image);
-			  sum = cv::sum(left_image).val[0]/left_image.rows/left_image.cols;
-			  ROS_INFO("Tried %i, got %f ",exposure,sum);
-			  int index = (int)(round(sum));
-			  if (exposureArray[index]==0){
-				 exposureArray[index]=exposure; 
-				 ROS_INFO("Gap filled %i %i",i,exposure);
-			  }
-			  ros::spinOnce();
-		  }
-
-	  }
-  }
+	float sum = 0; 
+	float lastSum = 10; 
+	int exposure=10;
+	int exposureArray[255];
+	int minGray = 20;
+	int maxGray = 255-minGray;
+	for (int i = minGray;i<maxGray;i++) exposureArray[i] = 0;
+	int increment = 1;
+	int j = 0;
+	char filename[100];
+	vector<string> filenames;
+	char prefix[] = "image";
+	for (int brightness = 2;brightness<3;brightness++){
 
 
-{	  /*encode exposure in the image*/
-	  left_image.at<char>(0,0) = exposure/256/256;	
-	  left_image.at<char>(0,1) = exposure/256%256;	
-	  left_image.at<char>(0,2) = exposure%256;
-//	  left_image.at<char>(0,3) = brightness%256;
-	
-	  ros::Time timestamp = ros::Time::now();
+		/*initial walkthrough with adaptive exposure step (increment)*/
+		for (int i = 0;i<2000 && (sum < maxGray || lastSum < maxGray || exposure < 255);i++)
+		{
+			tara_cam_.setExposure(exposure);
+			/*let the camera settle*/
+			for (int j=0;j<5;j++) tara_cam_.grabNextFrame(left_image, right_image);
+			/*calculate image brightness*/
+			lastSum = sum;
+			sum = cv::sum(left_image).val[0]/left_image.rows/left_image.cols;
+			if (exposureArray[(int)(sum+0.5)]==0){
+				sprintf(filename,"%s_%03i_%02i_%06i_r.png",prefix,(int)(round(sum)),j,exposure);
+				cv::imwrite(filename,right_image);
+				filenames.push_back(filename);
+				sprintf(filename,"%s_%03i_%02i_%06i_l.png",prefix,(int)(round(sum)),j,exposure);
+				cv::imwrite(filename,left_image);
+				filenames.push_back(filename);
+				exposureArray[(int)(sum+0.5)] = exposure;
+			}
+			if (lastSum < sum)  increment = (int)fmax(fmin((increment/(sum-lastSum)),exposure/10.0),1);   //adaptive step for exposure increment
+			exposure+=increment;
+			ROS_INFO("Exposure %i generated image with average brightness %.3f",exposure,sum);
+			ros::spinOnce();
+		}
 
-	  //Encoding the exposure information in the image
+		/*detect missing average brightnesses and try to generate them */
+		for (int i = minGray;i<maxGray;i++){
+			if (exposureArray[i] ==0)
+			{
+				int j = i;
+				while (j<maxGray && exposureArray[j] ==0) j++;
+				float minExposure = exposureArray[i-1];
+				float maxExposure = exposureArray[j];
+				ROS_INFO("Gap detected in %i, trying to fill by linear interpolation from %i:%.0f  %i:%.0f",i,i-1,minExposure,j,maxExposure);
+					//linear interpolation
+					exposure = (maxExposure-minExposure)/(j-i+1)+minExposure;
+					tara_cam_.setExposure(exposure);
+					for (int l=0;l<8;l++)  tara_cam_.grabNextFrame(left_image, right_image);
 
-	  std_msgs::Header header;
-	  header.seq = next_seq_;
-	  header.stamp = timestamp;
-	  header.frame_id = frame_id_;
+					int index = (int)(round(sum));
+					if (exposureArray[index]==0){
+						//save image
+						sum = cv::sum(left_image).val[0]/left_image.rows/left_image.cols;
+						sprintf(filename,"%s_%03i_%02i_%06i_r.png",prefix,(int)(round(sum)),j,exposure);
+						cv::imwrite(filename,right_image);
+						filenames.push_back(filename);
+						sprintf(filename,"%s_%03i_%02i_%06i_l.png",prefix,(int)(round(sum)),j,exposure);
+						cv::imwrite(filename,left_image);
+						filenames.push_back(filename);
+						exposureArray[index]=exposure; 
+						ROS_INFO("Tried %i, got %.3f, filled gap at %i.",exposure,sum,index);
+					}else{
+						ROS_INFO("Tried %i, got %.3f, gap %i not filled.",exposure,sum,index);
+					}
+					ros::spinOnce();
 
-	  // Convert OpenCV image to ROS image msg.
-	  cv_bridge::CvImage bridge_image_left(header, sensor_msgs::image_encodings::MONO8, left_image);
-	  cv_bridge::CvImage bridge_image_right(header, sensor_msgs::image_encodings::MONO8, right_image);
+			}
+		}
+	}
+	ROS_INFO("Publishing images.");
+	sort(filenames.begin(),filenames.end());
+	for (auto it = filenames.begin(); it!=filenames.end(); it++)
+	{
+		ROS_INFO("Loading and publishing %s",it->c_str());
+		left_image = cv::imread(*it);
+		it++;	
+		ROS_INFO("Loading and publishing %s",it->c_str());
+		right_image = cv::imread(*it);
+		int imExposure = atoi(&(it->c_str()[strlen(prefix)+1]));
+		int imBrightness = atoi(&(it->c_str()[strlen(prefix)+5]));
+		ROS_INFO("Publishing image with exposure %s and brightness %i %i",&it->c_str()[strlen(prefix)+5],imExposure,imBrightness);
 
-	  sensor_msgs::CameraInfo::Ptr camera_info_left(new sensor_msgs::CameraInfo(cinfo_manager_left_.getCameraInfo()));
-	  sensor_msgs::CameraInfo::Ptr camera_info_right(new sensor_msgs::CameraInfo(cinfo_manager_right_.getCameraInfo()));
 
-	  camera_info_left->header = header;
-	  camera_info_right->header = header;
+		ros::Time timestamp = ros::Time::now();
 
-	  cam_pub_left_.publish(bridge_image_left.toImageMsg(), camera_info_left);
-	  cam_pub_right_.publish(bridge_image_right.toImageMsg(), camera_info_right);
+		//Encoding the exposure information in the image
+		std_msgs::Header header;
+		header.seq = next_seq_;
+		header.stamp = timestamp;
+		header.frame_id = frame_id_;
+
+		// Convert OpenCV image to ROS image msg.
+		cv_bridge::CvImage bridge_image_left(header, sensor_msgs::image_encodings::MONO8, left_image);
+		cv_bridge::CvImage bridge_image_right(header, sensor_msgs::image_encodings::MONO8, right_image);
+
+		sensor_msgs::CameraInfo::Ptr camera_info_left(new sensor_msgs::CameraInfo(cinfo_manager_left_.getCameraInfo()));
+		sensor_msgs::CameraInfo::Ptr camera_info_right(new sensor_msgs::CameraInfo(cinfo_manager_right_.getCameraInfo()));
+
+		camera_info_left->header = header;
+		camera_info_right->header = header;
+
+		cam_pub_left_.publish(bridge_image_left.toImageMsg(), camera_info_left);
+		cam_pub_right_.publish(bridge_image_right.toImageMsg(), camera_info_right);
 
 
-	  /* // this code slow down camera
-	     int exposure_value = tara_cam_.getExposure();
-	     std_msgs::Int32 exposure_msg;
-	     exposure_msg.data = (int) exposure_value;
-	     exposure_pub.publish(exposure_msg);
-	     printf("exposure msg\n");*/
+		next_seq_++;
 
-	  next_seq_++;
-
-	  ros::spinOnce();
-  }
+		ros::spinOnce();
+	}
 }
 
 int main (int argc, char** argv)
