@@ -109,6 +109,7 @@ void CameraDriver::run()
 	char prefix[] = "image";
 	for (int brightness = 2;brightness<3;brightness++){
 
+
 		/*initial walkthrough with adaptive exposure step (increment)*/
 		for (int i = 0;i<2000 && (sum < maxGray || lastSum < maxGray || exposure < 255);i++)
 		{
