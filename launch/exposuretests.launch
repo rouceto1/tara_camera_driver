@@ -15,6 +15,8 @@
 
       <param name="exposure" type="int" value="1000" />
 
+      <param name="img_prefix" type="str" value="room2_pos" />
+
     </node>
 
   </group>

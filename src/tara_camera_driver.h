@@ -87,6 +87,8 @@ class CameraDriver
     int exposure_value;
     int brightness_value;
 
+    std::string img_name;
+
 };
 
 };
