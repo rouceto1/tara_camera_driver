@@ -106,7 +106,6 @@ void CameraDriver::run()
 	int maxGray = 255-minGray;
 	for (int i = minGray;i<maxGray;i++) exposureArray[i] = 0;
 	int increment = 1;
-	int j = 0;
 	char filename[100];
 	vector<string> filenames;
 	const char *prefix = img_name.c_str();
@@ -155,33 +154,31 @@ void CameraDriver::run()
 				pub.publish(msg);
 				iter++;
 			}
-			if (lastSum < sum)  increment = (int)fmax(fmin((increment/(sum-lastSum)),exposure/10.0),1);   //adaptive step for exposure increment
+			//if (lastSum < sum)  increment = (int)fmax(fmin((increment/(sum-lastSum)),exposure/10.0),1);   //adaptive step for exposure increment
+			if (lastSum < sum)  increment = (int)fmax(fmin((round(sum+1))/sum*exposure-exposure,exposure/10.0),1);   //adaptive step for exposure increment
+			ROS_INFO("Exposure %i and brightness %i setting generated image with average brightness %.3f. Adaptive step suggested %i",exposure,brightness,sum,increment);
 			exposure+=increment;
-			ROS_INFO("Exposure %i generated image with average brightness %.3f",exposure,sum);
 			ros::spinOnce();
 		}
 
 		/*detect missing average brightnesses and try to generate them */
-		/*for (int i = minGray;i<maxGray;i++){
+		for (int i = minGray;i<maxGray;i++){
 			if (exposureArray[i] ==0)
 			{
-				int j = i;
+				int j = i+1;
 				while (j<maxGray && exposureArray[j] ==0) j++;
 				float minExposure = exposureArray[i-1];
 				float maxExposure = exposureArray[j];
-				ROS_INFO("Gap detected in %i, trying to fill by linear interpolation from %i:%.0f  %i:%.0f",i,i-1,minExposure,j,maxExposure);
 					//linear interpolation
 					exposure = (maxExposure-minExposure)/(j-i+1)+minExposure;
-				if(!tara_cam_.setExposure(exposure)){
-					ROS_INFO("FALSE: Exposure finished in missing");
-					break;
-				}
+					ROS_INFO("Gap detected in %i, trying to fill with %i by linear interpolation from %i:%.0f  %i:%.0f",i,exposure,i-1,minExposure,j,maxExposure);
+					tara_cam_.setExposure(exposure);
 					for (int l=0;l<8;l++)  tara_cam_.grabNextFrame(left_image, right_image);
 
+					sum = cv::sum(left_image).val[0]/left_image.rows/left_image.cols;
 					int index = (int)(round(sum));
 					if (exposureArray[index]==0){
 						//save image
-						sum = cv::sum(left_image).val[0]/left_image.rows/left_image.cols;
 						sprintf(filename,"%s_%08i_%07i_%01i_%04i_%01i_%04i_rg.png",prefix,iter,exposure,brightness,(int)(round(sum)),j,i);
 						cv::imwrite(filename,right_image);
 						filenames.push_back(filename);
@@ -190,16 +187,14 @@ void CameraDriver::run()
 						filenames.push_back(filename);
 						exposureArray[index]=exposure; 
 						ROS_INFO("Tried %i, got %.3f, filled gap at %i.",exposure,sum,index);
-						ROS_INFO("Image %i, exp %i, bri %i, sum %i\n",iter,exposure,brightness,(int)(sum+0.5));
+						ROS_INFO("Image %i, exp %i, bri %i, sum %i",iter,exposure,brightness,(int)(sum+0.5));
 						iter++;
 					}else{
 						ROS_INFO("Tried %i, got %.3f, gap %i not filled.",exposure,sum,index);
 					}
 					ros::spinOnce();
-
 			}
 		}
-		*/
 	}
 	/*ROS_INFO("Publishing images.");
 	sort(filenames.begin(),filenames.end());
