@@ -155,7 +155,7 @@ void CameraDriver::run()
 				iter++;
 			}
 			//if (lastSum < sum)  increment = (int)fmax(fmin((increment/(sum-lastSum)),exposure/10.0),1);   //adaptive step for exposure increment
-			if (lastSum < sum)  increment = (int)fmax(fmin((round(sum+1))/sum*exposure-exposure,exposure/10.0),1);   //adaptive step for exposure increment
+			if (lastSum < sum)  increment = (int)fmax(fmin((round(sum+1))/sum*exposure-exposure,exposure/5.0),1);   //adaptive step for exposure increment
 			ROS_INFO("Exposure %i and brightness %i setting generated image with average brightness %.3f. Adaptive step suggested %i",exposure,brightness,sum,increment);
 			exposure+=increment;
 			ros::spinOnce();
@@ -179,10 +179,10 @@ void CameraDriver::run()
 					int index = (int)(round(sum));
 					if (exposureArray[index]==0){
 						//save image
-						sprintf(filename,"%s_%08i_%07i_%01i_%04i_%01i_%04i_rg.png",prefix,iter,exposure,brightness,(int)(round(sum)),j,i);
+						sprintf(filename,"%s_%01i_%07i_%03i_%04i_%04i_r.png",prefix,brightness,exposure,(int)(round(sum)),i,iter);
 						cv::imwrite(filename,right_image);
 						filenames.push_back(filename);
-						sprintf(filename,"%s_%08i_%07i_%01i_%04i_%01i_%04i_lg.png",prefix,iter,exposure,brightness,(int)(round(sum)),j,i);
+						sprintf(filename,"%s_%01i_%07i_%03i_%04i_%04i_l.png",prefix,brightness,exposure,(int)(round(sum)),i,iter);
 						cv::imwrite(filename,left_image);
 						filenames.push_back(filename);
 						exposureArray[index]=exposure; 

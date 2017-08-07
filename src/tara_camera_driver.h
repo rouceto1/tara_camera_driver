@@ -84,8 +84,11 @@ class CameraDriver
     ros::Publisher exposure_pub;
     ros::Timer timer_;
     dynamic_reconfigure::Server<tara_camera_driver::taraCameraConfig> dyn_srv_;
-    int exposure_value;
-    int brightness_value;
+    int exposure;
+    int brightness;
+    bool autoExposure;
+    float exposureGain;
+    int targetBrightness;
 
     std::string img_name;
 
