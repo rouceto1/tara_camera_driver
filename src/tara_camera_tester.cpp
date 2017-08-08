@@ -41,8 +41,13 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 
+#include <iostream>
+#include <iomanip>
+
 using namespace tara_camera_driver;
 using namespace std;
+
+void encode_brightness_exposure(cv::Mat& image, int brightness, int exposure);
 
 CameraDriver::CameraDriver(const std::string& device, ros::NodeHandle nh, ros::NodeHandle nhp)
   : nh_( nh ), nhp_( nhp )
@@ -113,11 +118,12 @@ void CameraDriver::run()
 
 	for (int brightness = 1;brightness<=7;brightness++){
 		tara_cam_.setBrightness(brightness);
+		/*let the camera settle*/
 		for (int j=0;j<5;j++) {
 				tara_cam_.grabNextFrame(left_image, right_image);	
 			}
 
-		// set up variables
+		/* set up variables */
 		increment = 1;
 		sum = 0;
 		lastSum = 10;
@@ -142,9 +148,11 @@ void CameraDriver::run()
 			sum = cv::sum(left_image).val[0]/left_image.rows/left_image.cols;
 			if (exposureArray[(int)(sum+0.5)]==0){
 				sprintf(filename,"%s_%01i_%07i_%03i_%04i_%04i_r.png",prefix,brightness,exposure,(int)(round(sum)),i,iter);
-				cv::imwrite(filename,right_image);
+				encode_brightness_exposure(right_image,brightness,exposure);
+                cv::imwrite(filename,right_image);
 				//filenames.push_back(filename);
 				sprintf(filename,"%s_%01i_%07i_%03i_%04i_%04i_l.png",prefix,brightness,exposure,(int)(round(sum)),i,iter);
+				encode_brightness_exposure(left_image,brightness,exposure);
 				cv::imwrite(filename,left_image);
 				//filenames.push_back(filename);
 				exposureArray[(int)(sum+0.5)] = exposure;
@@ -153,8 +161,10 @@ void CameraDriver::run()
 				msg.data = iter;
 				pub.publish(msg);
 				iter++;
-			}
-			//if (lastSum < sum)  increment = (int)fmax(fmin((increment/(sum-lastSum)),exposure/10.0),1);   //adaptive step for exposure increment
+                //printf("printf: %i, %c %c %c %c %c\n", right_image.at<uint8_t>(0, 0), right_image.at<uint8_t>(0, 1), right_image.at<uint8_t>(0, 2), right_image.at<uint8_t>(0, 3), right_image.at<uint8_t>(0, 4), right_image.at<uint8_t>(0, 5));
+
+            }
+            //if (lastSum < sum)  increment = (int)fmax(fmin((increment/(sum-lastSum)),exposure/10.0),1);   //adaptive step for exposure increment
 			if (lastSum < sum)  increment = (int)fmax(fmin((round(sum+1))/sum*exposure-exposure,exposure/5.0),1);   //adaptive step for exposure increment
 			ROS_INFO("Exposure %i and brightness %i setting generated image with average brightness %.3f. Adaptive step suggested %i",exposure,brightness,sum,increment);
 			exposure+=increment;
@@ -180,9 +190,11 @@ void CameraDriver::run()
 					if (exposureArray[index]==0){
 						//save image
 						sprintf(filename,"%s_%01i_%07i_%03i_%04i_%04i_r.png",prefix,brightness,exposure,(int)(round(sum)),i,iter);
+						encode_brightness_exposure(right_image,brightness,exposure);
 						cv::imwrite(filename,right_image);
 						filenames.push_back(filename);
 						sprintf(filename,"%s_%01i_%07i_%03i_%04i_%04i_l.png",prefix,brightness,exposure,(int)(round(sum)),i,iter);
+						encode_brightness_exposure(left_image,brightness,exposure);
 						cv::imwrite(filename,left_image);
 						filenames.push_back(filename);
 						exposureArray[index]=exposure; 
@@ -194,6 +206,7 @@ void CameraDriver::run()
 					}
 					ros::spinOnce();
 			}
+            ROS_INFO("gap %i",i);
 		}
 	}
 	/*ROS_INFO("Publishing images.");
@@ -237,6 +250,26 @@ void CameraDriver::run()
 		ros::spinOnce();
 	}*/
 }
+
+/*
+ * 	Encode brightness setting (1-7) to the first pixel
+ * 	and exposure setting (10-1000000) converted to hex (A-F4240) to the next five pixels.
+ */
+void encode_brightness_exposure(cv::Mat& image, int brightness, int exposure)
+{
+	image.at<uint8_t>(0, 0) = (uint8_t) brightness;
+
+	// exposure is converted to hex string and filled with '0' with the max size of 5, which is the hex length of the max of exposure
+	int hex_length = 5;
+	std::stringstream stream;
+	stream << std::setfill ('0') << std::setw(hex_length) << std::hex << exposure;
+	std::string hex_exposure( stream.str() );
+
+	for (int m = 0; m < hex_length; ++m) {
+		image.at<uint8_t>(0, m+1) = (uint8_t) hex_exposure[m];
+	}
+}
+
 
 int main (int argc, char** argv)
 {
