@@ -103,7 +103,7 @@ int StereoCameraDriver::set_control(uint32_t id, int val)
 
   if (ioctl(fd_, VIDIOC_G_CTRL, &c) == 0)
   {
-    printf("current value of %s is %d\n", queryctrl.name, c.value);
+  //  printf("current value of %s is %d\n", queryctrl.name, c.value);
   }
 
 //	printf("Setting control '%s' from %d to %d\n", queryctrl.name, c.value, val);

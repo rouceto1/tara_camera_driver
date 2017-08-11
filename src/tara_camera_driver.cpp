@@ -41,6 +41,7 @@
 #include <sensor_msgs/image_encodings.h>
 
 using namespace tara_camera_driver;
+tara_camera_driver::taraCameraConfig cameraConfig; 
 
 CameraDriver::CameraDriver(const std::string& device, ros::NodeHandle nh, ros::NodeHandle nhp)
   : nh_( nh ), nhp_( nhp )
@@ -97,6 +98,7 @@ void CameraDriver::timerCallback(const ros::TimerEvent &event)
 
 void CameraDriver::configCallback(tara_camera_driver::taraCameraConfig &config, uint32_t level)
 {
+  cameraConfig = config;
   autoExposure = config.autoExposure;
   if (autoExposure == false) exposure = config.exposure;
   targetBrightness = config.targetBrightness;
@@ -160,7 +162,23 @@ void CameraDriver::run()
 				float sum = cv::sum(tmp).val[0]/tmp.rows/tmp.cols;
 				ROS_INFO("Image brightness %.3f %i",sum,exposure);
 				exposure += exposureGain*(targetBrightness/sum*exposure-exposure);   //adaptive step for exposure setting
+				//adjust brightness in extreme cases
+				if (exposure < 0){
+					brightness = 1;
+					exposure = 150;
+					tara_cam_.setBrightness(brightness);
+					cameraConfig.brightness = brightness;
+				}
+				if (exposure > 1000000)
+				{
+					brightness = 7;
+					tara_cam_.setBrightness(brightness);
+					exposure = 100000;
+					cameraConfig.brightness = brightness;
+				}
+				cameraConfig.exposure = exposure;
 				tara_cam_.setExposure(exposure);
+				dyn_srv_.updateConfig(cameraConfig);
 			}
 		}
 		ros::spinOnce();
