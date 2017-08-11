@@ -176,9 +176,10 @@ void CameraDriver::run()
 					exposure = 100000;
 					cameraConfig.brightness = brightness;
 				}
+				cameraConfig.realBrightness = sum;
 				cameraConfig.exposure = exposure;
+				if (cameraConfig.feedback) dyn_srv_.updateConfig(cameraConfig);
 				tara_cam_.setExposure(exposure);
-				dyn_srv_.updateConfig(cameraConfig);
 			}
 		}
 		ros::spinOnce();
