@@ -13,6 +13,9 @@
       <param name="left/camera_info_url" value="file://$(find tara_camera_driver)/calib/calib_left.yml"/>
       <param name="right/camera_info_url" value="file://$(find tara_camera_driver)/calib/calib_right.yml"/>
 
+      <param name="left/camera_name" value="tara_left"/>
+      <param name="right/camera_name" value="tara_right"/>
+
       <param name="exposure" type="int" value="1000" />
       <param name="brightness" type="int" value="4" />
 

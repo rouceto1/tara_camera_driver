@@ -56,41 +56,31 @@ CameraDriver::CameraDriver(const std::string& device, ros::NodeHandle nh, ros::N
   , cinfo_manager_right_( ros::NodeHandle(nhp, "right") )
   , next_seq_( 0 )
 {
+  /* publishers of camera images */
   cam_pub_left_ = it_.advertiseCamera("left/image_raw", 1, false);
   cam_pub_right_ = it_.advertiseCamera("right/image_raw", 1, false);
 
-  // TODO make everything below a parameter.
-
+  /* load and set parameters */
   nhp.param<std::string>("frame_id", frame_id_, "tara_camera");
 
   std::string left_camera_info_url, right_camera_info_url;
-
   if (nhp.hasParam("left/camera_info_url"))
     nhp.param<std::string>("left/camera_info_url", left_camera_info_url, "");
 
   if (nhp.hasParam("right/camera_info_url"))
     nhp.param<std::string>("right/camera_info_url", right_camera_info_url, "");
 
-  cinfo_manager_left_.setCameraName("tara_left");
-  cinfo_manager_right_.setCameraName("tara_right");
-
   cinfo_manager_left_.loadCameraInfo( left_camera_info_url );
   cinfo_manager_right_.loadCameraInfo( right_camera_info_url );
 
+  std::string left_camera_name, right_camera_name;
+  nhp.param<std::string>("left/camera_name", left_camera_name, "tara_left");
+  nhp.param<std::string>("right/camera_name", right_camera_name, "tara_right");
+
+  cinfo_manager_left_.setCameraName(left_camera_name);
+  cinfo_manager_right_.setCameraName(right_camera_name);
+
   nhp.param<std::string>("img_prefix",img_name,"image");
-}
-
-void CameraDriver::exposureCallback(const std_msgs::Int32::ConstPtr& input)
-{ 
-  int exposure = input->data;
-  bool retVal = tara_cam_.setExposure(exposure);
-
-  if(retVal){
-       ROS_INFO("done: [%i]", exposure);
-   } else {
-         ROS_INFO("fail: [%i]", exposure);
-   }
-  
 }
 
 void CameraDriver::run()
@@ -98,14 +88,9 @@ void CameraDriver::run()
 	cv::Mat left_image(FRAME_HEIGHT, FRAME_WIDTH, CV_8UC1);
 	cv::Mat right_image(FRAME_HEIGHT, FRAME_WIDTH, CV_8UC1);
 
-	ros::NodeHandle n;
-	//ros::Publisher exposure_pub = n.advertise<std_msgs::Int32>("get_exposure", 1000);
-	ros::Publisher pub = n.advertise<std_msgs::Int32>("test_info", 500);
-	//ros::Subscriber exposure_sub = n.subscribe("set_exposure", 1000, &CameraDriver::exposureCallback, this);
-
 	float sum = 0; 
 	float lastSum = 10; 
-	int exposure=10;
+	int exposure = 10;
 	int exposureArray[255];
 	int minGray = 20;
 	int maxGray = 255-minGray;
@@ -120,23 +105,21 @@ void CameraDriver::run()
 		tara_cam_.setBrightness(brightness);
 		/*let the camera settle*/
 		for (int j=0;j<5;j++) {
-				tara_cam_.grabNextFrame(left_image, right_image);	
-			}
+            tara_cam_.grabNextFrame(left_image, right_image);
+        }
 
 		/* set up variables */
 		increment = 1;
 		sum = 0;
 		lastSum = 10;
 		exposure=10;
-		minGray = 20;
-		maxGray = 255-minGray;
 		for (int i = minGray;i<maxGray;i++) exposureArray[i] = 0;
 
 		/*initial walkthrough with adaptive exposure step (increment)*/
 		for (int i = 0;i<2000 && (sum < maxGray || lastSum < maxGray || exposure < 255);i++)
 		{
 			if(!tara_cam_.setExposure(exposure)){
-				ROS_INFO("FALSE: Exposure finished in initial");
+				ROS_INFO("FALSE: Exposure setting finished in initial walkthrough");
 				break;
 			}
 			/*let the camera settle*/
@@ -146,25 +129,19 @@ void CameraDriver::run()
 			/*calculate image brightness*/
 			lastSum = sum;
 			sum = cv::sum(left_image).val[0]/left_image.rows/left_image.cols;
+            /*save images*/
 			if (exposureArray[(int)(sum+0.5)]==0){
 				sprintf(filename,"%s_%01i_%07i_%03i_%04i_%04i_r.png",prefix,brightness,exposure,(int)(round(sum)),i,iter);
 				encode_brightness_exposure(right_image,brightness,exposure);
                 cv::imwrite(filename,right_image);
-				//filenames.push_back(filename);
+				filenames.push_back(filename);
 				sprintf(filename,"%s_%01i_%07i_%03i_%04i_%04i_l.png",prefix,brightness,exposure,(int)(round(sum)),i,iter);
 				encode_brightness_exposure(left_image,brightness,exposure);
 				cv::imwrite(filename,left_image);
-				//filenames.push_back(filename);
+				filenames.push_back(filename);
 				exposureArray[(int)(sum+0.5)] = exposure;
-
-				std_msgs::Int32 msg;
-				msg.data = iter;
-				pub.publish(msg);
 				iter++;
-                //printf("printf: %i, %c %c %c %c %c\n", right_image.at<uint8_t>(0, 0), right_image.at<uint8_t>(0, 1), right_image.at<uint8_t>(0, 2), right_image.at<uint8_t>(0, 3), right_image.at<uint8_t>(0, 4), right_image.at<uint8_t>(0, 5));
-
             }
-            //if (lastSum < sum)  increment = (int)fmax(fmin((increment/(sum-lastSum)),exposure/10.0),1);   //adaptive step for exposure increment
 			if (lastSum < sum)  increment = (int)fmax(fmin((round(sum+1))/sum*exposure-exposure,exposure/5.0),1);   //adaptive step for exposure increment
 			ROS_INFO("Exposure %i and brightness %i setting generated image with average brightness %.3f. Adaptive step suggested %i",exposure,brightness,sum,increment);
 			exposure+=increment;
@@ -185,10 +162,11 @@ void CameraDriver::run()
 					tara_cam_.setExposure(exposure);
 					for (int l=0;l<8;l++)  tara_cam_.grabNextFrame(left_image, right_image);
 
+                    /*calculate image brightness*/
 					sum = cv::sum(left_image).val[0]/left_image.rows/left_image.cols;
 					int index = (int)(round(sum));
 					if (exposureArray[index]==0){
-						//save image
+						//save images
 						sprintf(filename,"%s_%01i_%07i_%03i_%04i_%04i_r.png",prefix,brightness,exposure,(int)(round(sum)),i,iter);
 						encode_brightness_exposure(right_image,brightness,exposure);
 						cv::imwrite(filename,right_image);
@@ -206,10 +184,10 @@ void CameraDriver::run()
 					}
 					ros::spinOnce();
 			}
-            ROS_INFO("gap %i",i);
 		}
 	}
-	/*ROS_INFO("Publishing images.");
+
+    ROS_INFO("Publishing images.");
 	sort(filenames.begin(),filenames.end());
 	for (auto it = filenames.begin(); it!=filenames.end(); it++)
 	{
@@ -225,7 +203,7 @@ void CameraDriver::run()
 
 		ros::Time timestamp = ros::Time::now();
 
-		//Encoding the exposure information in the image
+		//Encoding information in the image
 		std_msgs::Header header;
 		header.seq = next_seq_;
 		header.stamp = timestamp;
@@ -248,7 +226,7 @@ void CameraDriver::run()
 		next_seq_++;
 
 		ros::spinOnce();
-	}*/
+	}
 }
 
 /*

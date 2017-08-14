@@ -57,15 +57,9 @@ class CameraDriver
     CameraDriver(const std::string& device, ros::NodeHandle nh, ros::NodeHandle nhp);
 
     /**
-     * @brief Run the data aquisition polling loop. Blocking!
+     * @brief Run the data acquisition polling loop. Blocking!
      */
     void run();
-    
-    void exposureCallback(const std_msgs::Int32::ConstPtr& input);
-
-    void configCallback(tara_camera_driver::taraCameraConfig &config, uint32_t level);
-
-    void timerCallback(const ros::TimerEvent &event);
 
   private:
 
@@ -81,8 +75,6 @@ class CameraDriver
     size_t next_seq_;
     std::string frame_id_;
 
-    ros::Publisher exposure_pub;
-    ros::Timer timer_;
     dynamic_reconfigure::Server<tara_camera_driver::taraCameraConfig> dyn_srv_;
     int exposure;
     int brightness;
@@ -90,7 +82,11 @@ class CameraDriver
     float exposureGain;
     int targetBrightness;
 
+    // image prefix name
     std::string img_name;
+
+    // dynamic reconfiguration of parameters
+    void configCallback(tara_camera_driver::taraCameraConfig &config, uint32_t level);
 
 };
 
