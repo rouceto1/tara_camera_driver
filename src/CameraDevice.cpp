@@ -45,16 +45,6 @@ StereoCameraDriver::~StereoCameraDriver()
   close( fd_ );
 }
 
-int StereoCameraDriver::getExposure(){
-  int exposureVal = -1;
-// this method is not working - no valid data
-    if(!GetManualExposureValue_Stereo(&exposureVal)) //Get the manual exposure
-	{
-  		printf("get exposure failed\n");
-	}
-   return exposureVal;
-}
-
 bool StereoCameraDriver::setExposure(int ExposureVal){
     if(!SetManualExposureValue_Stereo(ExposureVal)) //Set the manual exposure
 	{
@@ -65,7 +55,7 @@ bool StereoCameraDriver::setExposure(int ExposureVal){
 }
 
 bool StereoCameraDriver::setBrightness(int BrightnessVal){
-    if(!set_control(V4L2_CID_BRIGHTNESS, BrightnessVal)) //Set the manual brightness
+    if(!set_control(V4L2_CID_BRIGHTNESS, BrightnessVal)) //Set brightness
     {
         printf("set brightness failed\n");
         return FALSE;

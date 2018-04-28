@@ -16,14 +16,10 @@ class StereoCameraDriver
     ~StereoCameraDriver();
 
     void grabNextFrame(cv::Mat& img_left, cv::Mat& img_right);
-    
-    int getExposure();
 
     bool setExposure(int ExposureVal);
 
     bool setBrightness(int BrightnessVal);
-
-    int set_control(uint32_t id, int val);
 
     void printCapabilities();
 
@@ -38,6 +34,9 @@ class StereoCameraDriver
   // helper functions
 
     void init_mmap();
+
+    // helper function for v4l parameters setting
+    int set_control(uint32_t id, int val);
 };
 
 };

@@ -55,47 +55,40 @@ CameraDriver::CameraDriver(const std::string& device, ros::NodeHandle nh, ros::N
   , exposureGain(1.0)
   , targetBrightness(128)
 {
+    /* server for dynamic reconfiguration of camera parameters */
 	dynamic_reconfigure::Server<tara_camera_driver::taraCameraConfig>::CallbackType cb = boost::bind(&CameraDriver::configCallback, this, _1, _2);
 	dyn_srv_.setCallback(cb);
 
+    /* publishers of camera images */
 	cam_pub_left_ = it_.advertiseCamera("left/image_raw", 1, false);
 	cam_pub_right_ = it_.advertiseCamera("right/image_raw", 1, false);
 
-	// TODO make everything below a parameter.
-
+    /* load and set parameters */
 	nhp.param<std::string>("frame_id", frame_id_, "tara_camera");
 
 	std::string left_camera_info_url, right_camera_info_url;
-
 	if (nhp.hasParam("left/camera_info_url"))
 		nhp.param<std::string>("left/camera_info_url", left_camera_info_url, "");
 
 	if (nhp.hasParam("right/camera_info_url"))
 		nhp.param<std::string>("right/camera_info_url", right_camera_info_url, "");
 
-	cinfo_manager_left_.setCameraName("tara_left");
-	cinfo_manager_right_.setCameraName("tara_right");
+    cinfo_manager_left_.loadCameraInfo( left_camera_info_url );
+    cinfo_manager_right_.loadCameraInfo( right_camera_info_url );
 
-	cinfo_manager_left_.loadCameraInfo( left_camera_info_url );
-	cinfo_manager_right_.loadCameraInfo( right_camera_info_url );
+    std::string left_camera_name, right_camera_name;
+    nhp.param<std::string>("left/camera_name", left_camera_name, "tara_left");
+    nhp.param<std::string>("right/camera_name", right_camera_name, "tara_right");
 
-	int rate;
+	cinfo_manager_left_.setCameraName(left_camera_name);
+	cinfo_manager_right_.setCameraName(right_camera_name);
 
 	ros::NodeHandle pnh("~");
 	pnh.param("exposure", exposure, exposure);
 	pnh.param("brightness", brightness, brightness);
-	pnh.param("rate", rate, 1);
-
-	timer_ = nh.createTimer(ros::Duration(1 / rate), &CameraDriver::timerCallback, this);
 }
 
-void CameraDriver::timerCallback(const ros::TimerEvent &event)
-{
-	std_msgs::Int32 exposure_msg;
-	exposure_msg.data = (int) exposure;
-	exposure_pub.publish(exposure_msg);
-}
-
+/*receive parameters from dynamic reconfiguration and set them*/
 void CameraDriver::configCallback(tara_camera_driver::taraCameraConfig &config, uint32_t level)
 {
   cameraConfig = config;
@@ -104,23 +97,11 @@ void CameraDriver::configCallback(tara_camera_driver::taraCameraConfig &config, 
   targetBrightness = config.targetBrightness;
   brightness = config.brightness;
   exposureGain = config.exposureGain;
+
   tara_cam_.setExposure(exposure);
   tara_cam_.setBrightness(brightness);
 
   ROS_INFO("reconfigure: exp[%i], bri[%i],  des[%i]", exposure, brightness,targetBrightness);
-}
-
-void CameraDriver::exposureCallback(const std_msgs::Int32::ConstPtr& input)
-{ 
-  int exposure = input->data;
-  bool retVal = tara_cam_.setExposure(exposure);
-
-  if(retVal){
-       ROS_INFO("done: [%i]", exposure);
-   } else {
-         ROS_INFO("fail: [%i]", exposure);
-   }
-  
 }
 
 void CameraDriver::run()
@@ -128,15 +109,13 @@ void CameraDriver::run()
 	cv::Mat left_image(FRAME_HEIGHT, FRAME_WIDTH, CV_8UC1);
 	cv::Mat right_image(FRAME_HEIGHT, FRAME_WIDTH, CV_8UC1);
 
-	ros::NodeHandle n;
-	exposure_pub = n.advertise<std_msgs::Int32>("get_exposure", 1000);
-	ros::Subscriber exposure_sub = n.subscribe("set_exposure", 1000, &CameraDriver::exposureCallback, this);
 	while( ros::ok() )
 	{
 		tara_cam_.grabNextFrame(left_image, right_image);
 
 		ros::Time timestamp = ros::Time::now();
 
+        //Encoding information in the image
 		std_msgs::Header header;
 		header.seq = next_seq_;
 		header.stamp = timestamp;
