@@ -248,6 +248,7 @@ private:
 public:
 
 	char *DeviceInfo; 			//Bus info of the selected device
+	char *DeviceName; 			//name of the selected device
 
 	//Constructor
 	CameraEnumeration(int *DeviceID, cv::Size *ResolutionSelected);

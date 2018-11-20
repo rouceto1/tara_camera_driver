@@ -43,9 +43,9 @@
 using namespace tara_camera_driver;
 tara_camera_driver::taraCameraConfig cameraConfig; 
 
-CameraDriver::CameraDriver(const std::string& device, ros::NodeHandle nh, ros::NodeHandle nhp)
+CameraDriver::CameraDriver(int deviceID, ros::NodeHandle nh, ros::NodeHandle nhp)
   : nh_( nh ), nhp_( nhp )
-  , tara_cam_( device ), it_( nh )
+  , tara_cam_( deviceID ), it_( nh )
   , cinfo_manager_left_( ros::NodeHandle(nhp, "left") )
   , cinfo_manager_right_( ros::NodeHandle(nhp, "right") )
   , next_seq_( 0 )

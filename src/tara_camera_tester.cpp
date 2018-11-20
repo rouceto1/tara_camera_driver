@@ -49,9 +49,9 @@ using namespace std;
 
 void encode_brightness_exposure(cv::Mat& image, int brightness, int exposure);
 
-CameraDriver::CameraDriver(const std::string& device, ros::NodeHandle nh, ros::NodeHandle nhp)
+CameraDriver::CameraDriver(int deviceID, ros::NodeHandle nh, ros::NodeHandle nhp)
   : nh_( nh ), nhp_( nhp )
-  , tara_cam_( device ), it_( nh )
+  , tara_cam_( deviceID ), it_( nh )
   , cinfo_manager_left_( ros::NodeHandle(nhp, "left") )
   , cinfo_manager_right_( ros::NodeHandle(nhp, "right") )
   , next_seq_( 0 )
@@ -256,10 +256,10 @@ int main (int argc, char** argv)
   ros::NodeHandle nh;
   ros::NodeHandle nhp("~");
 
-  std::string device;
-  nhp.param<std::string>("device", device, "/dev/video0");
+  int deviceId;
+  nhp.param<int>("device_id", deviceId, 0);
 
-  tara_camera_driver::CameraDriver driver(device, nh, nhp);
+  tara_camera_driver::CameraDriver driver( deviceId, nh, nhp);
 
   driver.run();
 

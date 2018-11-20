@@ -55,10 +55,10 @@ void CameraNodelet::onInit()
   ros::NodeHandle nh( getNodeHandle() );
   ros::NodeHandle nhp( getPrivateNodeHandle() );
 
-  std::string device;
-  nhp.param<std::string>("device", device, "/dev/video0");
+  int deviceID;
+  nhp.param<int>("device_id", deviceID, 0);
 
-  driver_.reset(new CameraDriver(device, nh, nhp));
+  driver_.reset(new CameraDriver(deviceID, nh, nhp));
 }
 
 };

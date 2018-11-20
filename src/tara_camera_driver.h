@@ -54,7 +54,7 @@ class CameraDriver
 {
   public:
 
-    CameraDriver(const std::string& device, ros::NodeHandle nh, ros::NodeHandle nhp);
+    CameraDriver(int deviceID, ros::NodeHandle nh, ros::NodeHandle nhp);
 
     /**
      * @brief Run the data acquisition polling loop. Blocking!

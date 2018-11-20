@@ -11,7 +11,7 @@ class StereoCameraDriver
 {
   public:
 
-    StereoCameraDriver(const std::string& device);
+    StereoCameraDriver(int deviceID);
 
     ~StereoCameraDriver();
 

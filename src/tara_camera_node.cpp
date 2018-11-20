@@ -43,10 +43,10 @@ int main (int argc, char** argv)
   ros::NodeHandle nh;
   ros::NodeHandle nhp("~");
 
-  std::string device;
-  nhp.param<std::string>("device", device, "/dev/video0");
+  int deviceID;
+  nhp.param<int>("device_id", deviceID, 0);
 
-  tara_camera_driver::CameraDriver driver(device, nh, nhp);
+  tara_camera_driver::CameraDriver driver(deviceID, nh, nhp);
 
   driver.run();
 

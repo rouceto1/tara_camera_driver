@@ -23,18 +23,18 @@ static int xioctl(int fd, int request, void* arg)
   return r;
 }
 
-StereoCameraDriver::StereoCameraDriver(const std::string& device)
+StereoCameraDriver::StereoCameraDriver(int deviceID)
 {
-  fd_ = open("/dev/video1", O_RDWR);
+  int DeviceID = deviceID;
+  cv::Size ImageSize;
+  Tara::CameraEnumeration _CameraEnumeration(&DeviceID, &ImageSize);
+  InitExtensionUnit(_CameraEnumeration.DeviceInfo);
+
+  fd_ = open(_CameraEnumeration.DeviceName, O_RDWR);
   if (fd_ < 0)
     throw std::runtime_error("Opening video device");
 
   printCapabilities();
-
-  int DeviceID;
-  cv::Size ImageSize;
-  Tara::CameraEnumeration _CameraEnumeration(&DeviceID, &ImageSize);
-  InitExtensionUnit(_CameraEnumeration.DeviceInfo);
 
   init_mmap();
 }
